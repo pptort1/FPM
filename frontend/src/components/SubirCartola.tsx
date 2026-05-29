@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { Upload, X, CheckCircle } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Upload, X, CheckCircle, Pencil, Check } from "lucide-react";
 import api from "../apiInstance";
 
 const PLAN_OPTIONS: { cuenta: string; nombre: string; cc: string }[] = [
@@ -98,13 +98,46 @@ export default function SubirCartola({ onSubido }: Props) {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setPreview(res.data);
-      setFilas(res.data.filas);
+      // Batch-lookup proveedores para RUTs desconocidos
+      const filasCon = res.data.filas;
+      const ruts = [...new Set(filasCon
+        .filter(f => f.rut && (!f.proveedor || f.proveedor === f.rut))
+        .map(f => f.rut!)
+      )];
+      const maestro: Record<string, string> = {};
+      await Promise.allSettled(
+        ruts.map(rut =>
+          api.get(`/proveedores/${encodeURIComponent(rut)}`)
+            .then(r => { if (r.data.nombre) maestro[rut] = r.data.nombre; })
+        )
+      );
+      setFilas(filasCon.map(f =>
+        f.rut && maestro[f.rut]
+          ? { ...f, proveedor: maestro[f.rut] }
+          : f
+      ));
     } catch (e: any) {
       setError(e.response?.data?.detail ?? "Error al procesar el archivo");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const [editingProv, setEditingProv] = useState<number | null>(null);
+  const [provInput, setProvInput]     = useState("");
+
+  const guardarProveedor = async (idx: number) => {
+    const fila = filas[idx];
+    if (!provInput.trim() || !fila.rut) { setEditingProv(null); return; }
+    // Guardar en maestro
+    await api.put(`/proveedores/${encodeURIComponent(fila.rut)}`, { nombre: provInput.trim() })
+      .catch(() => {});
+    setFilas(prev => prev.map((f, i) =>
+      // Actualizar todas las filas con el mismo RUT
+      f.rut === fila.rut ? { ...f, proveedor: provInput.trim() } : f
+    ));
+    setEditingProv(null);
+  };
 
   const toggleFila = (i: number) => {
     setFilas(prev => prev.map((f, idx) =>
@@ -268,7 +301,8 @@ export default function SubirCartola({ onSubido }: Props) {
                         <th className="px-4 py-2 w-8"></th>
                         <th className="text-left px-3 py-2">Estado</th>
                         <th className="text-left px-3 py-2">Fecha</th>
-                        <th className="text-left px-3 py-2 w-80">Descripción</th>
+                        <th className="text-left px-3 py-2 w-64">Descripción</th>
+                        <th className="text-left px-3 py-2 w-40">Proveedor</th>
                         <th className="text-right px-3 py-2">Monto</th>
                         <th className="text-left px-3 py-2">Cuenta</th>
                         <th className="text-center px-3 py-2">CC</th>
@@ -301,8 +335,43 @@ export default function SubirCartola({ onSubido }: Props) {
                             <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap text-xs">{fila.fecha}</td>
                             <td className="px-3 py-2.5 max-w-xs">
                               <div className="truncate text-gray-800" title={fila.descripcion}>{fila.descripcion}</div>
-                              {fila.proveedor && fila.proveedor !== fila.descripcion && (
-                                <div className="truncate text-xs text-gray-400">{fila.proveedor}</div>
+                            </td>
+                            {/* Proveedor con edición inline */}
+                            <td className="px-3 py-2.5" onClick={e => e.stopPropagation()}>
+                              {editingProv === realIdx ? (
+                                <div className="flex items-center gap-1">
+                                  <input autoFocus value={provInput}
+                                    onChange={e => setProvInput(e.target.value)}
+                                    onKeyDown={e => {
+                                      if (e.key === "Enter") guardarProveedor(realIdx);
+                                      if (e.key === "Escape") setEditingProv(null);
+                                    }}
+                                    className="border border-blue-300 rounded px-2 py-0.5 text-xs w-32 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                                    placeholder="Nombre…" />
+                                  <button onClick={() => guardarProveedor(realIdx)}
+                                    className="text-emerald-600 hover:text-emerald-800"><Check size={13}/></button>
+                                  <button onClick={() => setEditingProv(null)}
+                                    className="text-gray-400 hover:text-gray-600"><X size={13}/></button>
+                                </div>
+                              ) : fila.proveedor && fila.proveedor !== fila.rut ? (
+                                <div className="flex items-center gap-1 group/prov">
+                                  <span className="text-xs text-gray-600 truncate" title={fila.proveedor}>
+                                    {fila.proveedor}
+                                  </span>
+                                  {editable && (
+                                    <button onClick={() => { setEditingProv(realIdx); setProvInput(fila.proveedor ?? ""); }}
+                                      className="opacity-0 group-hover/prov:opacity-100 text-gray-300 hover:text-gray-500">
+                                      <Pencil size={11}/>
+                                    </button>
+                                  )}
+                                </div>
+                              ) : fila.rut && editable ? (
+                                <button onClick={() => { setEditingProv(realIdx); setProvInput(""); }}
+                                  className="text-xs text-orange-500 hover:text-orange-700 flex items-center gap-1 italic">
+                                  <Pencil size={11}/> Identificar
+                                </button>
+                              ) : (
+                                <span className="text-gray-300 text-xs">—</span>
                               )}
                             </td>
                             <td className="px-3 py-2.5 text-right font-medium text-gray-800 whitespace-nowrap">
