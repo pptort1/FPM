@@ -1,6 +1,16 @@
-from sqlalchemy import Integer, String, Date
+from sqlalchemy import Integer, String, Date, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
+
+
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    id:       Mapped[int]  = mapped_column(Integer, primary_key=True, autoincrement=True)
+    username: Mapped[str]  = mapped_column(String(50), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    nombre:   Mapped[str | None] = mapped_column(String(100))
+    activo:   Mapped[bool] = mapped_column(Boolean, default=True)
 
 class Ingreso(Base):
     __tablename__ = "ingresos"

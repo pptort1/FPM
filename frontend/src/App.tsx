@@ -193,7 +193,7 @@ function IngresosView() {
 
 // ── App shell ───────────────────────────────────────────────────────────────
 
-export default function App() {
+export default function App({ onLogout }: { onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("egresos");
 
   const tabs: { id: Tab; label: string }[] = [
@@ -210,18 +210,24 @@ export default function App() {
             <h1 className="text-xl font-bold text-gray-900">FPM Finanzas</h1>
             <p className="text-xs text-gray-400">Fait Par Marie · 2025–2026</p>
           </div>
-          <nav className="flex gap-1">
-            {tabs.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  tab === t.id
-                    ? "bg-gray-900 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}>
-                {t.label}
-              </button>
-            ))}
-          </nav>
+          <div className="flex items-center gap-2">
+            <nav className="flex gap-1">
+              {tabs.map(t => (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    tab === t.id
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}>
+                  {t.label}
+                </button>
+              ))}
+            </nav>
+            <button onClick={onLogout}
+              className="ml-2 px-3 py-2 text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">
+              Salir
+            </button>
+          </div>
         </div>
       </header>
 

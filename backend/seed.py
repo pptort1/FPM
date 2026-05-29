@@ -9,7 +9,9 @@ import openpyxl
 
 sys.path.insert(0, str(Path(__file__).parent))
 from app.database import engine, SessionLocal, Base
-from app.models import Transaccion, Ingreso
+from app.models import Transaccion, Ingreso, Usuario
+from app.auth import hash_password
+from app.config import settings
 
 EXCEL_EGRESOS  = Path(__file__).parent / "data" / "egresos_2025_FINAL.xlsx"
 EXCEL_PLAN     = Path(__file__).parent / "data" / "plan_cuentas.xlsx"
@@ -93,8 +95,19 @@ def main():
         db.bulk_save_objects(ingresos)
         db.commit()
 
+    # ── Usuario admin ─────────────────────────────────────────────────────────
+    admin = Usuario(
+        username="admin",
+        password_hash=hash_password(settings.ADMIN_PASSWORD),
+        nombre="Administrador",
+        activo=True,
+    )
+    db.add(admin)
+    db.commit()
+
     print(f"Egresos importados:  {len(egresos)}")
     print(f"Ingresos importados: {len(ingresos)}")
+    print(f"Usuario admin creado (password desde ADMIN_PASSWORD)")
 
 
 if __name__ == "__main__":
