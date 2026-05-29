@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .auth import get_current_user
-from .routers import egresos, ingresos, flujo, cartolas, bsale, auth, proveedores, egresos_manual, ingresos_bsale
+from .routers import egresos, ingresos, flujo, cartolas, bsale, auth, proveedores, egresos_manual, ingresos_bsale, ingresos_tuu
 
 app = FastAPI(title="FPM Finanzas API", version="1.0.0")
 
@@ -27,6 +27,7 @@ app.include_router(bsale.router,       **PROTECTED)
 app.include_router(proveedores.router,    **PROTECTED)
 app.include_router(egresos_manual.router,  **PROTECTED)
 app.include_router(ingresos_bsale.router,  **PROTECTED)
+app.include_router(ingresos_tuu.router,    **PROTECTED)
 
 
 @app.get("/api/health")

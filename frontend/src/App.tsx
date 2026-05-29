@@ -9,6 +9,7 @@ import FlujoCajaView from "./components/FlujoCaja";
 import SubirCartola from "./components/SubirCartola";
 import SyncBsale from "./components/SyncBsale";
 import SubirVentasBsale from "./components/SubirVentasBsale";
+import SubirVentasTuu from "./components/SubirVentasTuu";
 import EgresoManual from "./components/EgresoManual";
 import ConciliarCartola from "./components/ConciliarCartola";
 
@@ -164,6 +165,7 @@ function IngresosView() {
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Ingresos por canal</span>
           <SubirVentasBsale onSubido={() => setFiltros((f: any) => ({ ...f, pagina: 1 }))} />
+          <SubirVentasTuu onSubido={() => setFiltros((f: any) => ({ ...f, pagina: 1 }))} />
           <SyncBsale onSyncado={() => setFiltros((f: any) => ({ ...f, pagina: 1 }))} />
         </div>
         <div className="flex flex-wrap gap-2">
