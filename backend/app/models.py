@@ -17,6 +17,8 @@ class Ingreso(Base):
     cuenta:        Mapped[str]  = mapped_column(String(10), nullable=False, index=True)
     nombre_cuenta: Mapped[str | None] = mapped_column(String(100))
     canal:         Mapped[str | None] = mapped_column(String(5), index=True)
+    # Bsale sync
+    bsale_id:      Mapped[str | None] = mapped_column(String(20), unique=True)
 
 class Transaccion(Base):
     __tablename__ = "transacciones"

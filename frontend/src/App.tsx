@@ -7,6 +7,7 @@ import IngresosTable from "./components/IngresosTable";
 import ResumenCards from "./components/ResumenCards";
 import FlujoCajaView from "./components/FlujoCaja";
 import SubirCartola from "./components/SubirCartola";
+import SyncBsale from "./components/SyncBsale";
 
 const DEBOUNCE_MS = 400;
 const POR_PAGINA = 50;
@@ -137,6 +138,10 @@ function IngresosView() {
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Total ingresos netos</h2>
           <span className="text-2xl font-bold text-gray-900">${Math.round(total).toLocaleString("es-CL")}</span>
+        </div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Ingresos por canal</span>
+          <SyncBsale onSyncado={() => setFiltros((f: any) => ({ ...f, pagina: 1 }))} />
         </div>
         <div className="flex flex-wrap gap-2">
           {resumen.map(r => (

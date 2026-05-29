@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
-from .routers import egresos, ingresos, flujo, cartolas
+from .routers import egresos, ingresos, flujo, cartolas, bsale
 
 app = FastAPI(title="FPM Finanzas API", version="1.0.0")
 
@@ -17,6 +17,7 @@ app.include_router(egresos.router)
 app.include_router(ingresos.router)
 app.include_router(flujo.router)
 app.include_router(cartolas.router)
+app.include_router(bsale.router)
 
 @app.get("/api/health")
 async def health():

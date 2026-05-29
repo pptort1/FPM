@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/fpm"
     CORS_ORIGINS: str = "http://localhost:5173"
+    BSALE_TOKEN: str = ""
 
     @property
     def cors_list(self) -> list[str]:
