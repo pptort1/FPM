@@ -21,7 +21,7 @@ COLS = [
     ("Proveedor",    "Nombre proveedor",                30),
     ("Monto Total",  "Monto en pesos (sin puntos)",    16),
     ("Tipo Doc",     "F=Factura  S=Boleta Honorarios B=Boleta", 10),
-    ("Forma Pago",   "Credito=TC  Debito=CuentaCorriente", 12),
+    ("Forma Pago",   "Credito=TC  Debito=CuentaCorriente  Efectivo=Caja", 14),
     ("Cuenta",       "Código cuenta (ej: 1.1.1) — opcional", 10),
     ("CC",           "Centro costo (ej: CC1) — opcional",      8),
 ]
@@ -102,8 +102,10 @@ def importar_excel(file: UploadFile = File(...), db: Session = Depends(get_db)):
             monto = int(str(r[4] or "0").replace(".", "").replace(",", "").strip())
             tipo  = str(r[5] or "S").strip().upper()[:1]
             tipo  = tipo if tipo in ("F","S","B") else "S"
-            forma = str(r[6] or "Debito").strip()
-            forma = "Credito" if "cr" in forma.lower() else "Debito"
+            forma_raw = str(r[6] or "Debito").strip().lower()
+            if "cr" in forma_raw:    forma = "Credito"
+            elif "ef" in forma_raw:  forma = "Efectivo"
+            else:                    forma = "Debito"
             cuenta= str(r[7] or "").strip()
             cc    = str(r[8] or "").strip()
             if cuenta and cuenta in PLAN:

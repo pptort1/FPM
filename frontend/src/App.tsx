@@ -79,8 +79,8 @@ function EgresosView() {
           </select>
           <select value={filtros.forma_pago ?? ""} onChange={e => set("forma_pago", e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="">Débito + Crédito</option>
-            {opciones?.forma_pago?.map(fp => <option key={fp} value={fp}>{fp}</option>)}
+            <option value="">Todas las formas</option>
+            {["Debito","Credito","Efectivo"].map(fp => <option key={fp} value={fp}>{fp}</option>)}
           </select>
           <select value={(filtros as any).estado ?? ""} onChange={e => set("estado" as any, e.target.value)}
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">

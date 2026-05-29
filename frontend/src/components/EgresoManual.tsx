@@ -45,6 +45,7 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 const mesDe = (f: string) => f.slice(0, 7);
 
 export default function EgresoManual({ onGuardado }: Props) {
+  const [provLista, setProvLista]  = useState<string[]>([]);
   const [open, setOpen]           = useState(false);
   const [loading, setLoading]     = useState(false);
   const [ok, setOk]               = useState(false);
@@ -106,6 +107,11 @@ export default function EgresoManual({ onGuardado }: Props) {
     }
   };
 
+  const abrirForm = () => {
+    setOpen(true); reset();
+    api.get("/proveedores/lista").then(r => setProvLista(r.data)).catch(() => {});
+  };
+
   const reset = () => {
     setOk(false); setError("");
     setForm({ fecha_pago:hoy(), mes_devengo:mesDe(hoy()),
@@ -150,7 +156,7 @@ export default function EgresoManual({ onGuardado }: Props) {
             {importResult.errores > 0 && `, ${importResult.errores} errores`}
           </span>
         )}
-        <button onClick={() => { setOpen(true); reset(); }}
+        <button onClick={abrirForm}
           className="flex items-center gap-1.5 px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800">
           <PlusCircle size={14} /> Egreso manual
         </button>
@@ -199,8 +205,17 @@ export default function EgresoManual({ onGuardado }: Props) {
 
                 <div>
                   <label className={labelCls}>Proveedor</label>
-                  <input type="text" value={form.proveedor} placeholder="Nombre del proveedor"
-                    onChange={e => set("proveedor", e.target.value)} className={inputCls} />
+                  <input
+                    list="prov-list"
+                    value={form.proveedor}
+                    onChange={e => set("proveedor", e.target.value)}
+                    placeholder="Buscar o escribir proveedor…"
+                    className={inputCls}
+                  />
+                  <datalist id="prov-list">
+                    {provLista.map(p => <option key={p} value={p} />)}
+                    <option value="Otro — especificar en descripción" />
+                  </datalist>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
@@ -222,6 +237,7 @@ export default function EgresoManual({ onGuardado }: Props) {
                     <select value={form.forma_pago} onChange={e => set("forma_pago", e.target.value)} className={inputCls}>
                       <option value="Debito">Débito (CC)</option>
                       <option value="Credito">Crédito (TC)</option>
+                      <option value="Efectivo">Efectivo</option>
                     </select>
                   </div>
                 </div>

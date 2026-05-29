@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select, func
 from typing import Optional
 from ..database import get_db
 from ..models import ProveedorMaestro, Transaccion
-from ..clasificador import DIRECT_RUTS, PLAN
 
 router = APIRouter(prefix="/api/proveedores", tags=["proveedores"])
 
-# Nombres conocidos de DIRECT_RUTS (para pre-cargar)
 NOMBRES_CONOCIDOS = {
     "76034515-6": "CCE Arquitectos Ltda",
     "5279758-6":  "Luis Felipe Ibieta",
@@ -26,12 +24,7 @@ NOMBRES_CONOCIDOS = {
     "77406473-7": "Café del Parque SPA",
     "96794400-9": "CAPEX Local",
     "77423092-0": "Computador",
-    "18866000-2": "Personal (sueldo)",
-    "22809808-6": "Personal (sueldo)",
-    "26715306-K": "Fotógrafo / Contenido",
-    "20830554-9": "Personal (sueldo)",
     "56059620-0": "GGCC / Arriendo Oficina",
-    "21668806-6": "Personal (sueldo)",
     "6551524-5":  "Despachos Horeca",
 }
 
@@ -42,13 +35,30 @@ class ProveedorIn(BaseModel):
     cc:     Optional[str] = None
 
 
+@router.get("/lista")
+def lista_proveedores(db: Session = Depends(get_db)):
+    """Lista de proveedores únicos del historial de egresos + maestro."""
+    # Del maestro
+    maestro = {r.rut: r.nombre for r in db.execute(select(ProveedorMaestro)).scalars().all()}
+    # Del historial de transacciones
+    hist = db.execute(
+        select(Transaccion.proveedor)
+        .where(Transaccion.proveedor.isnot(None))
+        .where(Transaccion.proveedor != "")
+        .distinct()
+        .order_by(Transaccion.proveedor)
+    ).scalars().all()
+    # Unir sin duplicados
+    todos = sorted(set(list(maestro.values()) + list(NOMBRES_CONOCIDOS.values()) + [p for p in hist if p]))
+    return todos
+
+
 @router.get("/{rut}")
 def get_proveedor(rut: str, db: Session = Depends(get_db)):
     rut_norm = rut.replace(".", "").upper()
     pm = db.get(ProveedorMaestro, rut_norm)
     if pm:
         return {"rut": pm.rut, "nombre": pm.nombre, "cuenta": pm.cuenta, "cc": pm.cc}
-    # Fallback a nombres conocidos hardcodeados
     nombre = NOMBRES_CONOCIDOS.get(rut_norm)
     if nombre:
         return {"rut": rut_norm, "nombre": nombre, "conocido": True}
@@ -67,7 +77,6 @@ def upsert_proveedor(rut: str, body: ProveedorIn, db: Session = Depends(get_db))
         pm = ProveedorMaestro(rut=rut_norm, nombre=body.nombre,
                               cuenta=body.cuenta, cc=body.cc)
         db.add(pm)
-    # Actualizar transacciones existentes con ese RUT
     db.query(Transaccion).filter(
         Transaccion.rut == rut_norm,
         Transaccion.proveedor == rut_norm,
