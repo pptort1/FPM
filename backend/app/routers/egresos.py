@@ -9,7 +9,7 @@ from ..schemas import TransaccionOut, ResumenCC, ResumenMes, ListaEgresos, CC_NO
 router = APIRouter(prefix="/api/egresos", tags=["egresos"])
 
 
-def _filtros(q, mes, cc, forma_pago, cuenta, search, fecha_desde, fecha_hasta):
+def _filtros(q, mes, cc, forma_pago, cuenta, search, fecha_desde, fecha_hasta, estado=None):
     if mes:
         q = q.where(Transaccion.mes_devengo == mes)
     if cc:
@@ -28,6 +28,8 @@ def _filtros(q, mes, cc, forma_pago, cuenta, search, fecha_desde, fecha_hasta):
         q = q.where(Transaccion.fecha_pago >= fecha_desde)
     if fecha_hasta:
         q = q.where(Transaccion.fecha_pago <= fecha_hasta)
+    if estado:
+        q = q.where(Transaccion.estado == estado)
     return q
 
 
@@ -40,12 +42,13 @@ def listar_egresos(
     search:      Optional[str] = None,
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
+    estado:      Optional[str] = None,
     pagina:      int = Query(1, ge=1),
     por_pagina:  int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
     base = select(Transaccion)
-    base = _filtros(base, mes, cc, forma_pago, cuenta, search, fecha_desde, fecha_hasta)
+    base = _filtros(base, mes, cc, forma_pago, cuenta, search, fecha_desde, fecha_hasta, estado)
 
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
 

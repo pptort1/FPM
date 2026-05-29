@@ -6,6 +6,7 @@ import EgresosTable from "./components/EgresosTable";
 import IngresosTable from "./components/IngresosTable";
 import ResumenCards from "./components/ResumenCards";
 import FlujoCajaView from "./components/FlujoCaja";
+import SubirCartola from "./components/SubirCartola";
 
 const DEBOUNCE_MS = 400;
 const POR_PAGINA = 50;
@@ -39,7 +40,7 @@ function EgresosView() {
     setFiltros(f => ({ ...f, [key]: value || undefined, pagina: 1 })), []);
 
   const limpiar = () => { setFiltros({ pagina: 1, por_pagina: POR_PAGINA }); setSearchInput(""); };
-  const hayFiltros = !!(filtros.mes || filtros.cc || filtros.forma_pago || filtros.search);
+  const hayFiltros = !!(filtros.mes || filtros.cc || filtros.forma_pago || filtros.search || (filtros as any).estado);
 
   return (
     <div className="space-y-4">
@@ -48,6 +49,7 @@ function EgresosView() {
       </div>
       <div className="bg-white rounded-xl border border-gray-200 p-4">
         <div className="flex flex-wrap gap-3 items-end">
+          <SubirCartola onSubido={() => setFiltros(f => ({ ...f, pagina: 1 }))} />
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" placeholder="Buscar descripción o proveedor…" value={searchInput}
@@ -68,6 +70,13 @@ function EgresosView() {
             className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">Débito + Crédito</option>
             {opciones?.forma_pago?.map(fp => <option key={fp} value={fp}>{fp}</option>)}
+          </select>
+          <select value={(filtros as any).estado ?? ""} onChange={e => set("estado" as any, e.target.value)}
+            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="">Todos los estados</option>
+            <option value="validado">Validado</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="revision">En revisión</option>
           </select>
           {hayFiltros && (
             <button onClick={limpiar} className="flex items-center gap-1 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50">

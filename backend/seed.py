@@ -29,6 +29,7 @@ def _to_date(v) -> date | None:
 
 
 def main():
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     # ── Egresos ──────────────────────────────────────────────────────────────
@@ -56,6 +57,8 @@ def main():
             cuenta        = str(r[10] or ""),
             cc            = str(r[11] or ""),
             archivo_origen= None,
+            estado        = "validado",
+            confianza     = 100,
         ))
 
     # ── Ingresos ─────────────────────────────────────────────────────────────
