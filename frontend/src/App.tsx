@@ -2,8 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { Search, X } from "lucide-react";
 import { egresosApi, ingresosApi, FiltrosEgresos, ListaEgresos, ResumenCC, FiltrosOpciones,
          ListaIngresos, ResumenCanal, FiltrosIngresosOpciones } from "./api";
-import EgresosTable from "./components/EgresosTable";
-import IngresosTable from "./components/IngresosTable";
+import EgresosTable, { SortKey } from "./components/EgresosTable";
+import IngresosTable, { SortKeyI } from "./components/IngresosTable";
 import ResumenCards from "./components/ResumenCards";
 import FlujoCajaView from "./components/FlujoCaja";
 import SubirCartola from "./components/SubirCartola";
@@ -22,6 +22,8 @@ function EgresosView() {
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState<FiltrosEgresos>({ pagina: 1, por_pagina: POR_PAGINA });
   const [searchInput, setSearchInput] = useState("");
+  const [sortKey, setSortKey]   = useState<SortKey>("fecha_pago");
+  const [sortDir, setSortDir]   = useState<"asc"|"desc">("desc");
 
   useEffect(() => { egresosApi.opciones().then(setOpciones); }, []);
 
@@ -32,10 +34,16 @@ function EgresosView() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([egresosApi.listar(filtros), egresosApi.resumenCC({ mes: filtros.mes })])
+    Promise.all([egresosApi.listar({...filtros, sort_by: sortKey, sort_dir: sortDir}), egresosApi.resumenCC({ mes: filtros.mes })])
       .then(([l, r]) => { setLista(l); setResumen(r); })
       .finally(() => setLoading(false));
-  }, [filtros]);
+  }, [filtros, sortKey, sortDir]);
+
+  const handleSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+    setFiltros(f => ({ ...f, pagina: 1 }));
+  };
 
   const set = useCallback((key: keyof FiltrosEgresos, value: string | undefined) =>
     setFiltros(f => ({ ...f, [key]: value || undefined, pagina: 1 })), []);
@@ -88,7 +96,8 @@ function EgresosView() {
       </div>
       <EgresosTable items={lista?.items ?? []} total={lista?.total ?? 0}
         pagina={filtros.pagina ?? 1} porPagina={POR_PAGINA}
-        onPagina={p => setFiltros(f => ({ ...f, pagina: p }))} loading={loading} />
+        onPagina={p => setFiltros(f => ({ ...f, pagina: p }))} loading={loading}
+        sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
     </div>
   );
 }
@@ -110,6 +119,8 @@ function IngresosView() {
   const [loading, setLoading] = useState(false);
   const [filtros, setFiltros] = useState<any>({ pagina: 1, por_pagina: POR_PAGINA });
   const [searchInput, setSearchInput] = useState("");
+  const [sortKey, setSortKey]   = useState<SortKeyI>("fecha");
+  const [sortDir, setSortDir]   = useState<"asc"|"desc">("desc");
 
   useEffect(() => { ingresosApi.opciones().then(setOpciones); }, []);
 
@@ -120,10 +131,16 @@ function IngresosView() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([ingresosApi.listar(filtros), ingresosApi.resumenCanal({ mes: filtros.mes })])
+    Promise.all([ingresosApi.listar({...filtros, sort_by: sortKey, sort_dir: sortDir}), ingresosApi.resumenCanal({ mes: filtros.mes })])
       .then(([l, r]) => { setLista(l); setResumen(r); })
       .finally(() => setLoading(false));
-  }, [filtros]);
+  }, [filtros, sortKey, sortDir]);
+
+  const handleSortI = (k: SortKeyI) => {
+    if (k === sortKey) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("desc"); }
+    setFiltros((f: any) => ({ ...f, pagina: 1 }));
+  };
 
   const set = (key: string, value: string | undefined) =>
     setFiltros((f: any) => ({ ...f, [key]: value || undefined, pagina: 1 }));
@@ -186,7 +203,8 @@ function IngresosView() {
 
       <IngresosTable items={lista?.items ?? []} total={lista?.total ?? 0}
         pagina={filtros.pagina ?? 1} porPagina={POR_PAGINA}
-        onPagina={p => setFiltros((f: any) => ({ ...f, pagina: p }))} loading={loading} />
+        onPagina={p => setFiltros((f: any) => ({ ...f, pagina: p }))} loading={loading}
+        sortKey={sortKey} sortDir={sortDir} onSort={handleSortI} />
     </div>
   );
 }

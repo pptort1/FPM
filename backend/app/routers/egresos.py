@@ -43,6 +43,8 @@ def listar_egresos(
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
     estado:      Optional[str] = None,
+    sort_by:     str = Query("fecha_pago"),
+    sort_dir:    str = Query("desc"),
     pagina:      int = Query(1, ge=1),
     por_pagina:  int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -52,8 +54,17 @@ def listar_egresos(
 
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
 
+    SORT_COLS = {
+        "fecha_pago": Transaccion.fecha_pago, "mes_devengo": Transaccion.mes_devengo,
+        "monto_total": Transaccion.monto_total, "monto_neto": Transaccion.monto_neto,
+        "cc": Transaccion.cc, "forma_pago": Transaccion.forma_pago,
+        "descripcion": Transaccion.descripcion,
+    }
+    col = SORT_COLS.get(sort_by, Transaccion.fecha_pago)
+    order = col.asc() if sort_dir == "asc" else col.desc()
+
     items = db.execute(
-        base.order_by(Transaccion.fecha_pago.desc(), Transaccion.id.desc())
+        base.order_by(order, Transaccion.id.desc())
             .offset((pagina - 1) * por_pagina)
             .limit(por_pagina)
     ).scalars().all()

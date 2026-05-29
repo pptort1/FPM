@@ -54,6 +54,8 @@ def listar_ingresos(
     search:      Optional[str] = None,
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
+    sort_by:     str = Query("fecha"),
+    sort_dir:    str = Query("desc"),
     pagina:      int = Query(1, ge=1),
     por_pagina:  int = Query(50, ge=1, le=500),
     db: Session = Depends(get_db),
@@ -62,8 +64,18 @@ def listar_ingresos(
     base = _filtros(base, mes, canal, cuenta, search, fecha_desde, fecha_hasta)
 
     total = db.execute(select(func.count()).select_from(base.subquery())).scalar_one()
+
+    SORT_COLS = {
+        "fecha": Ingreso.fecha, "mes_devengo": Ingreso.mes_devengo,
+        "monto_total": Ingreso.monto_total, "monto_neto": Ingreso.monto_neto,
+        "canal": Ingreso.canal, "tipo_doc": Ingreso.tipo_doc,
+        "cliente": Ingreso.cliente,
+    }
+    col = SORT_COLS.get(sort_by, Ingreso.fecha)
+    order = col.asc() if sort_dir == "asc" else col.desc()
+
     items = db.execute(
-        base.order_by(Ingreso.fecha.desc(), Ingreso.id.desc())
+        base.order_by(order, Ingreso.id.desc())
             .offset((pagina - 1) * por_pagina)
             .limit(por_pagina)
     ).scalars().all()
