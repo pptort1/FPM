@@ -3,6 +3,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
 
 
+class Producto(Base):
+    __tablename__ = "productos"
+
+    sku:          Mapped[str]       = mapped_column(String(100), primary_key=True)
+    nombre:       Mapped[str]       = mapped_column(String(300), nullable=False)
+    variante:     Mapped[str | None]= mapped_column(String(200))
+    precio_final: Mapped[int]       = mapped_column(Integer, nullable=False, default=0)
+    activo:       Mapped[bool]      = mapped_column(Boolean, default=True)
+
+
 class ProveedorMaestro(Base):
     __tablename__ = "proveedores_maestro"
 

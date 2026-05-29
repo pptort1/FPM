@@ -11,13 +11,14 @@ from sqlalchemy import text, select, func
 
 sys.path.insert(0, str(Path(__file__).parent))
 from app.database import engine, SessionLocal, Base
-from app.models import Transaccion, Ingreso, Usuario, ProveedorMaestro
+from app.models import Transaccion, Ingreso, Usuario, ProveedorMaestro, Producto
 from app.auth import hash_password
 from app.config import settings
 from app.parser_santander import _firma
 
 EXCEL_EGRESOS = Path(__file__).parent / "data" / "egresos_2025_FINAL.xlsx"
 EXCEL_PLAN    = Path(__file__).parent / "data" / "plan_cuentas.xlsx"
+EXCEL_SKU     = Path(__file__).parent / "data" / "sku.xlsx"
 
 
 def _to_date(v) -> date | None:
@@ -69,6 +70,7 @@ def main():
     else:
         print(f"BD existente ({n_tx} egresos, {n_ing} ingresos) — omitiendo seed.")
 
+    _seed_productos()
     _ensure_admin()
     print("Listo.")
 
@@ -121,6 +123,35 @@ def _seed_ingresos():
     with SessionLocal() as db:
         db.bulk_save_objects(ingresos); db.commit()
     print(f"Ingresos importados: {len(ingresos)}")
+
+
+def _seed_productos():
+    """Importa o actualiza el catálogo de SKUs — siempre corre (upsert)."""
+    if not EXCEL_SKU.exists():
+        print("Sku.xlsx no encontrado — omitiendo.")
+        return
+    wb = openpyxl.load_workbook(EXCEL_SKU, read_only=True, data_only=True)
+    rows = list(wb.active.iter_rows(min_row=2, values_only=True))
+    wb.close()
+
+    with SessionLocal() as db:
+        for r in rows:
+            if not r[0]: continue
+            sku = str(r[0]).strip()
+            existing = db.get(Producto, sku)
+            if existing:
+                existing.nombre       = str(r[1] or "").strip()
+                existing.variante     = str(r[2]).strip() if r[2] else None
+                existing.precio_final = int(r[3] or 0)
+            else:
+                db.add(Producto(
+                    sku=sku,
+                    nombre=str(r[1] or "").strip(),
+                    variante=str(r[2]).strip() if r[2] else None,
+                    precio_final=int(r[3] or 0),
+                ))
+        db.commit()
+    print(f"Productos actualizados: {len(rows)}")
 
 
 def _ensure_admin():
