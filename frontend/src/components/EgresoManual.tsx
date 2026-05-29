@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Download, PlusCircle } from "lucide-react";
+import { useState, useRef } from "react";
+import { X, Download, Upload, PlusCircle, CheckCircle } from "lucide-react";
 import api from "../apiInstance";
 
 const BASE = import.meta.env.VITE_API_URL ?? "";
@@ -45,10 +45,27 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 const mesDe = (f: string) => f.slice(0, 7);
 
 export default function EgresoManual({ onGuardado }: Props) {
-  const [open, setOpen]       = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [ok, setOk]           = useState(false);
-  const [error, setError]     = useState("");
+  const [open, setOpen]           = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [ok, setOk]               = useState(false);
+  const [error, setError]         = useState("");
+  const [importResult, setImportResult] = useState<{agregados:number;duplicados:number;errores:number}|null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const importarExcel = async (file: File) => {
+    setImportResult(null);
+    const form = new FormData();
+    form.append("file", file);
+    try {
+      const res = await api.post("/egresos/importar-excel", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setImportResult(res.data);
+      onGuardado();
+    } catch (e: any) {
+      alert(e.response?.data?.detail ?? "Error al importar el archivo");
+    }
+  };
 
   const [form, setForm] = useState({
     fecha_pago:  hoy(),
@@ -114,11 +131,25 @@ export default function EgresoManual({ onGuardado }: Props) {
 
   return (
     <>
+      <input ref={importRef} type="file" accept=".xlsx,.xls" className="hidden"
+        onChange={e => e.target.files?.[0] && importarExcel(e.target.files[0])} />
+
       <div className="flex items-center gap-2">
         <button onClick={descargarPlantilla}
           className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
           <Download size={14} /> Plantilla Excel
         </button>
+        <button onClick={() => { setImportResult(null); importRef.current?.click(); }}
+          className="flex items-center gap-1.5 px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">
+          <Upload size={14} /> Subir plantilla
+        </button>
+        {importResult && (
+          <span className="text-xs text-emerald-600 flex items-center gap-1">
+            <CheckCircle size={13}/> {importResult.agregados} importados
+            {importResult.duplicados > 0 && `, ${importResult.duplicados} duplicados`}
+            {importResult.errores > 0 && `, ${importResult.errores} errores`}
+          </span>
+        )}
         <button onClick={() => { setOpen(true); reset(); }}
           className="flex items-center gap-1.5 px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800">
           <PlusCircle size={14} /> Egreso manual
