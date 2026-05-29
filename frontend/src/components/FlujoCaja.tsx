@@ -48,7 +48,10 @@ export default function FlujoCajaView() {
   return (
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-        <h2 className="font-semibold text-gray-800">Flujo de Caja — Monto Neto sin IVA | Base Mes Devengo</h2>
+        <h2 className="font-semibold text-gray-800">Flujo de Caja — Base Mes Devengo</h2>
+        <p className="text-xs text-amber-600 mt-0.5 font-medium">
+          ⚠ Montos brutos con IVA incluido. No representa flujo de caja real — el IVA se recupera/paga vía F29 mensual.
+        </p>
         <p className="text-xs text-gray-400 mt-0.5">Click en un CC para expandir subcuentas</p>
       </div>
 

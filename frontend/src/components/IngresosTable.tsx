@@ -1,26 +1,29 @@
+import { useState, useMemo } from "react";
 import { Ingreso } from "../api";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CL");
 
 const CANAL_BADGE: Record<string, string> = {
-  CH1: "bg-blue-100 text-blue-700",
-  CH2: "bg-green-100 text-green-700",
-  CH3: "bg-orange-100 text-orange-700",
-  CH4: "bg-purple-100 text-purple-700",
-  CH5: "bg-pink-100 text-pink-700",
+  CH1:"bg-blue-100 text-blue-700", CH2:"bg-green-100 text-green-700",
+  CH3:"bg-orange-100 text-orange-700", CH4:"bg-purple-100 text-purple-700",
+  CH5:"bg-pink-100 text-pink-700",
 };
-
 const CANAL_NOMBRE: Record<string, string> = {
-  CH1: "HoReCa", CH2: "B2C", CH3: "Delivery", CH4: "Carrito", CH5: "Ferias",
+  CH1:"HoReCa", CH2:"B2C", CH3:"Delivery", CH4:"Carrito", CH5:"Ferias",
+};
+const DOC_BADGE: Record<string, string> = {
+  B:"bg-gray-100 text-gray-600", F:"bg-blue-50 text-blue-600",
+  NC:"bg-red-50 text-red-600", ND:"bg-yellow-50 text-yellow-600",
 };
 
-const DOC_BADGE: Record<string, string> = {
-  B:  "bg-gray-100 text-gray-600",
-  F:  "bg-blue-50 text-blue-600",
-  NC: "bg-red-50 text-red-600",
-  ND: "bg-yellow-50 text-yellow-600",
-};
+type SortKey = "fecha" | "mes_devengo" | "monto_total" | "monto_neto" | "canal" | "tipo_doc";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return <ChevronsUpDown size={12} className="opacity-30" />;
+  return dir === "asc" ? <ChevronUp size={12} /> : <ChevronDown size={12} />;
+}
 
 interface Props {
   items: Ingreso[];
@@ -32,6 +35,32 @@ interface Props {
 }
 
 export default function IngresosTable({ items, total, pagina, porPagina, onPagina, loading }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey>("fecha");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const sorted = useMemo(() => {
+    return [...items].sort((a, b) => {
+      const va = a[sortKey] ?? "";
+      const vb = b[sortKey] ?? "";
+      const cmp = typeof va === "number" ? va - (vb as number) : String(va).localeCompare(String(vb));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [items, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const Th = ({ label, sk, left }: { label: string; sk: SortKey; left?: boolean }) => (
+    <th onClick={() => toggleSort(sk)}
+      className={`${left ? "text-left" : "text-right"} px-4 py-3 font-medium cursor-pointer select-none hover:bg-gray-100`}>
+      <div className={`flex items-center gap-1 ${left ? "" : "justify-end"}`}>
+        {label}<SortIcon active={sortKey === sk} dir={sortDir} />
+      </div>
+    </th>
+  );
+
   const totalPaginas = Math.ceil(total / porPagina);
   const desde = (pagina - 1) * porPagina + 1;
   const hasta = Math.min(pagina * porPagina, total);
@@ -42,23 +71,22 @@ export default function IngresosTable({ items, total, pagina, porPagina, onPagin
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200 text-xs text-gray-500 uppercase tracking-wide">
-              <th className="text-left px-4 py-3 font-medium">Fecha</th>
-              <th className="text-left px-4 py-3 font-medium">Mes</th>
+              <Th label="Fecha"    sk="fecha"        left />
+              <Th label="Mes"      sk="mes_devengo"  left />
               <th className="text-left px-4 py-3 font-medium">Cliente</th>
-              <th className="text-left px-4 py-3 font-medium w-64">Descripción</th>
-              <th className="text-right px-4 py-3 font-medium">Monto</th>
-              <th className="text-right px-4 py-3 font-medium">IVA</th>
-              <th className="text-right px-4 py-3 font-medium">Neto</th>
-              <th className="text-center px-4 py-3 font-medium">Doc</th>
-              <th className="text-center px-4 py-3 font-medium">Canal</th>
+              <th className="text-left px-4 py-3 font-medium">Descripción</th>
+              <Th label="Monto"    sk="monto_total" />
+              <Th label="Neto"     sk="monto_neto" />
+              <Th label="Doc"      sk="tipo_doc"     left />
+              <Th label="Canal"    sk="canal"        left />
               <th className="text-left px-4 py-3 font-medium">Cuenta</th>
             </tr>
           </thead>
           <tbody className={loading ? "opacity-50" : ""}>
-            {items.length === 0 && !loading && (
-              <tr><td colSpan={10} className="text-center py-12 text-gray-400">Sin resultados</td></tr>
+            {sorted.length === 0 && !loading && (
+              <tr><td colSpan={9} className="text-center py-12 text-gray-400">Sin resultados</td></tr>
             )}
-            {items.map((tx, i) => (
+            {sorted.map((tx, i) => (
               <tr key={tx.id} className={`border-b border-gray-100 hover:bg-gray-50 ${i % 2 !== 0 ? "bg-gray-50/30" : ""}`}>
                 <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{tx.fecha}</td>
                 <td className="px-4 py-2.5 text-gray-600 whitespace-nowrap">{tx.mes_devengo}</td>
@@ -69,8 +97,7 @@ export default function IngresosTable({ items, total, pagina, porPagina, onPagin
                   <div className="truncate text-gray-800" title={tx.descripcion}>{tx.descripcion}</div>
                 </td>
                 <td className="px-4 py-2.5 text-right text-gray-700 whitespace-nowrap">{fmt(tx.monto_total)}</td>
-                <td className="px-4 py-2.5 text-right text-gray-400 text-xs whitespace-nowrap">{tx.iva > 0 ? fmt(tx.iva) : "—"}</td>
-                <td className="px-4 py-2.5 text-right font-medium text-gray-900 whitespace-nowrap">{fmt(tx.monto_neto)}</td>
+                <td className="px-4 py-2.5 text-right text-gray-500 text-xs whitespace-nowrap">{fmt(tx.monto_neto)}</td>
                 <td className="px-4 py-2.5 text-center">
                   <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${DOC_BADGE[tx.tipo_doc] ?? "bg-gray-50 text-gray-500"}`}>
                     {tx.tipo_doc}

@@ -68,7 +68,7 @@ def resumen_por_cc(
     q = select(
         Transaccion.cc,
         func.count(Transaccion.id).label("n_tx"),
-        func.sum(Transaccion.monto_neto).label("monto_neto"),
+        func.sum(Transaccion.monto_total).label("monto_neto"),
     ).group_by(Transaccion.cc).order_by(Transaccion.cc)
     q = _filtros(q, mes, None, None, None, None, fecha_desde, fecha_hasta)
     rows = db.execute(q).all()
@@ -86,7 +86,7 @@ def resumen_por_mes(
 ):
     q = select(
         Transaccion.mes_devengo,
-        func.sum(Transaccion.monto_neto).label("monto_neto"),
+        func.sum(Transaccion.monto_total).label("monto_neto"),
     ).group_by(Transaccion.mes_devengo).order_by(Transaccion.mes_devengo)
     if cc:
         q = q.where(Transaccion.cc == cc)

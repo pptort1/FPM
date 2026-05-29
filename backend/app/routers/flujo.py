@@ -63,7 +63,7 @@ def flujo_caja(db: Session = Depends(get_db)):
     # Pivot ingresos: cuenta → mes → neto
     ing_pivot: dict[str, dict[str, int]] = {}
     for row in db.execute(
-        select(Ingreso.cuenta, Ingreso.mes_devengo, func.sum(Ingreso.monto_neto))
+        select(Ingreso.cuenta, Ingreso.mes_devengo, func.sum(Ingreso.monto_total))
         .group_by(Ingreso.cuenta, Ingreso.mes_devengo)
     ).all():
         ing_pivot.setdefault(row[0], {})[row[1]] = int(row[2] or 0)
@@ -73,7 +73,7 @@ def flujo_caja(db: Session = Depends(get_db)):
     egr_cc_pivot: dict[str, dict[str, int]] = {}
     for row in db.execute(
         select(Transaccion.cuenta, Transaccion.cc, Transaccion.mes_devengo,
-               func.sum(Transaccion.monto_neto))
+               func.sum(Transaccion.monto_total))
         .group_by(Transaccion.cuenta, Transaccion.cc, Transaccion.mes_devengo)
     ).all():
         cuenta, cc, mes, val = row[0], row[1], row[2], int(row[3] or 0)

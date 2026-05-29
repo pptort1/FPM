@@ -94,7 +94,7 @@ def resumen_por_canal(
     q = select(
         Ingreso.canal,
         func.count(Ingreso.id).label("n_tx"),
-        func.sum(Ingreso.monto_neto).label("monto_neto"),
+        func.sum(Ingreso.monto_total).label("monto_neto"),
     ).group_by(Ingreso.canal).order_by(Ingreso.canal)
     q = _filtros(q, mes, None, None, None, fecha_desde, fecha_hasta)
     rows = db.execute(q).all()
@@ -112,7 +112,7 @@ def resumen_por_mes(
 ):
     q = select(
         Ingreso.mes_devengo,
-        func.sum(Ingreso.monto_neto).label("monto_neto"),
+        func.sum(Ingreso.monto_total).label("monto_neto"),
     ).group_by(Ingreso.mes_devengo).order_by(Ingreso.mes_devengo)
     if canal:
         q = q.where(Ingreso.canal == canal)
