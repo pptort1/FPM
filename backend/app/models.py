@@ -61,3 +61,4 @@ class Transaccion(Base):
     firma_dedup:   Mapped[str | None] = mapped_column(String(32), index=True)
     rut:           Mapped[str | None] = mapped_column(String(20))
     confianza:     Mapped[int]  = mapped_column(Integer, nullable=False, default=100)
+    reconciliado:  Mapped[bool] = mapped_column(Boolean, default=False)

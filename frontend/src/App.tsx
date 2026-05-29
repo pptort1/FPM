@@ -9,6 +9,7 @@ import FlujoCajaView from "./components/FlujoCaja";
 import SubirCartola from "./components/SubirCartola";
 import SyncBsale from "./components/SyncBsale";
 import EgresoManual from "./components/EgresoManual";
+import ConciliarCartola from "./components/ConciliarCartola";
 
 const DEBOUNCE_MS = 400;
 const POR_PAGINA = 50;
@@ -61,6 +62,7 @@ function EgresosView() {
         <div className="flex flex-wrap gap-3 items-end">
           <SubirCartola onSubido={() => setFiltros(f => ({ ...f, pagina: 1 }))} />
           <EgresoManual onGuardado={() => setFiltros(f => ({ ...f, pagina: 1 }))} />
+          <ConciliarCartola onConciliado={() => setFiltros(f => ({ ...f, pagina: 1 }))} />
           <div className="relative flex-1 min-w-48">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input type="text" placeholder="Buscar descripción o proveedor…" value={searchInput}
