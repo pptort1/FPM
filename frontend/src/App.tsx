@@ -98,7 +98,7 @@ export default function App() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Todos los meses</option>
-              {opciones?.meses.map((m) => (
+              {opciones?.meses?.map((m) => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
@@ -110,7 +110,7 @@ export default function App() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Todos los CC</option>
-              {opciones?.ccs.map((cc) => (
+              {opciones?.ccs?.map((cc) => (
                 <option key={cc.value} value={cc.value}>{cc.label}</option>
               ))}
             </select>
@@ -122,7 +122,7 @@ export default function App() {
               className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Débito + Crédito</option>
-              {opciones?.forma_pago.map((fp) => (
+              {opciones?.forma_pago?.map((fp) => (
                 <option key={fp} value={fp}>{fp}</option>
               ))}
             </select>
