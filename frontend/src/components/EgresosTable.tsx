@@ -1,5 +1,6 @@
 import { Transaccion } from "../api";
 import { ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
+import ProveedorCell from "./ProveedorCell";
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CL");
 
@@ -73,10 +74,8 @@ export default function EgresosTable({ items, total, pagina, porPagina, onPagina
                 <td className="px-4 py-2.5 max-w-xs">
                   <div className="truncate text-gray-800" title={tx.descripcion}>{tx.descripcion}</div>
                 </td>
-                <td className="px-4 py-2.5 max-w-xs">
-                  <div className="truncate text-gray-400 text-xs" title={tx.proveedor??""}>
-                    {tx.proveedor ?? "—"}
-                  </div>
+                <td className="px-4 py-2.5">
+                  <ProveedorCell proveedor={tx.proveedor} rut={(tx as any).rut ?? null} />
                 </td>
                 <td className="px-4 py-2.5 text-right text-gray-700 whitespace-nowrap">{fmt(tx.monto_total)}</td>
                 <td className="px-4 py-2.5 text-right text-gray-400 whitespace-nowrap text-xs">{fmt(tx.monto_neto)}</td>

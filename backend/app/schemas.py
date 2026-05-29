@@ -28,6 +28,8 @@ class TransaccionOut(BaseModel):
     cuenta:        str
     cc:            str
     archivo_origen: str | None
+    rut:            str | None = None
+    estado:         str | None = None
 
     model_config = {"from_attributes": True}
 

@@ -3,6 +3,15 @@ from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
 
 
+class ProveedorMaestro(Base):
+    __tablename__ = "proveedores_maestro"
+
+    rut:    Mapped[str]       = mapped_column(String(20), primary_key=True)
+    nombre: Mapped[str]       = mapped_column(String(200), nullable=False)
+    cuenta: Mapped[str | None]= mapped_column(String(10))
+    cc:     Mapped[str | None]= mapped_column(String(5))
+
+
 class Usuario(Base):
     __tablename__ = "usuarios"
 
