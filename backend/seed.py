@@ -12,6 +12,7 @@ from app.database import engine, SessionLocal, Base
 from app.models import Transaccion, Ingreso, Usuario
 from app.auth import hash_password
 from app.config import settings
+from app.parser_santander import _firma
 
 EXCEL_EGRESOS  = Path(__file__).parent / "data" / "egresos_2025_FINAL.xlsx"
 EXCEL_PLAN     = Path(__file__).parent / "data" / "plan_cuentas.xlsx"
@@ -61,6 +62,7 @@ def main():
             archivo_origen= None,
             estado        = "validado",
             confianza     = 100,
+            firma_dedup   = _firma(fecha, int(r[4] or 0), str(r[2] or "")),
         ))
 
     # ── Ingresos ─────────────────────────────────────────────────────────────
