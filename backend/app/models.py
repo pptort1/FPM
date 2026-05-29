@@ -49,6 +49,6 @@ class Transaccion(Base):
     archivo_origen: Mapped[str | None] = mapped_column(String(200))
     # Campos de cartola
     estado:        Mapped[str]  = mapped_column(String(20), nullable=False, default="validado", index=True)
-    firma_dedup:   Mapped[str | None] = mapped_column(String(32), unique=True)
+    firma_dedup:   Mapped[str | None] = mapped_column(String(32), index=True)
     rut:           Mapped[str | None] = mapped_column(String(20))
     confianza:     Mapped[int]  = mapped_column(Integer, nullable=False, default=100)

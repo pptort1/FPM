@@ -90,10 +90,20 @@ def main():
             canal         = str(r[10]) if r[10] else None,
         ))
 
+    # Deduplicar egresos por firma antes de insertar
+    seen: set[str] = set()
+    egresos_ok = []
+    for tx in egresos:
+        if tx.firma_dedup and tx.firma_dedup in seen:
+            continue
+        if tx.firma_dedup:
+            seen.add(tx.firma_dedup)
+        egresos_ok.append(tx)
+
     with SessionLocal() as db:
         db.query(Transaccion).delete()
         db.query(Ingreso).delete()
-        db.bulk_save_objects(egresos)
+        db.bulk_save_objects(egresos_ok)
         db.bulk_save_objects(ingresos)
         db.commit()
 
@@ -107,7 +117,7 @@ def main():
     db.add(admin)
     db.commit()
 
-    print(f"Egresos importados:  {len(egresos)}")
+    print(f"Egresos importados:  {len(egresos_ok)} ({len(egresos)-len(egresos_ok)} duplicados omitidos)")
     print(f"Ingresos importados: {len(ingresos)}")
     print(f"Usuario admin creado (password desde ADMIN_PASSWORD)")
 
