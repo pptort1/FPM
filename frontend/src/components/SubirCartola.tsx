@@ -1,6 +1,41 @@
 import { useState, useRef, useCallback } from "react";
-import { Upload, X, CheckCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { Upload, X, CheckCircle } from "lucide-react";
 import api from "../apiInstance";
+
+const PLAN_OPTIONS: { cuenta: string; nombre: string; cc: string }[] = [
+  { cuenta:"1.1.1", nombre:"Ingredientes",           cc:"CC1" },
+  { cuenta:"1.1.2", nombre:"Packaging",              cc:"CC1" },
+  { cuenta:"1.1.3", nombre:"Equipamiento Cocina",    cc:"CC1" },
+  { cuenta:"1.2.1", nombre:"Sueldos",                cc:"CC2" },
+  { cuenta:"1.2.2", nombre:"Honorarios",             cc:"CC2" },
+  { cuenta:"1.2.3", nombre:"Asesoría Contable",      cc:"CC2" },
+  { cuenta:"1.2.4", nombre:"Uniformes",              cc:"CC2" },
+  { cuenta:"1.3.1", nombre:"Arriendo",               cc:"CC3" },
+  { cuenta:"1.3.2", nombre:"Agua",                   cc:"CC3" },
+  { cuenta:"1.3.3", nombre:"Luz",                    cc:"CC3" },
+  { cuenta:"1.3.4", nombre:"Gas",                    cc:"CC3" },
+  { cuenta:"1.3.5", nombre:"Telecomunicaciones",     cc:"CC3" },
+  { cuenta:"1.3.6", nombre:"Mantenciones",           cc:"CC3" },
+  { cuenta:"1.3.7", nombre:"Fumigaciones",           cc:"CC3" },
+  { cuenta:"1.3.8", nombre:"Limpieza y Aseo",        cc:"CC3" },
+  { cuenta:"1.3.9", nombre:"Seguridad",              cc:"CC3" },
+  { cuenta:"1.3.10",nombre:"Equipamiento Local",     cc:"CC3" },
+  { cuenta:"1.4.1", nombre:"Inversión Carro",        cc:"CC4" },
+  { cuenta:"1.4.2", nombre:"Mantención Carro",       cc:"CC4" },
+  { cuenta:"1.4.5", nombre:"Sueldos Carro",          cc:"CC4" },
+  { cuenta:"1.5.1", nombre:"Plataformas Digitales",  cc:"CC5" },
+  { cuenta:"1.6.1", nombre:"RRSS",                   cc:"CC6" },
+  { cuenta:"1.6.2", nombre:"Producción Audiovisual", cc:"CC6" },
+  { cuenta:"1.6.3", nombre:"Ferias y Eventos",       cc:"CC6" },
+  { cuenta:"1.7.1", nombre:"Despachos B2B",          cc:"CC7" },
+  { cuenta:"1.7.2", nombre:"Despachos B2C",          cc:"CC7" },
+  { cuenta:"1.7.3", nombre:"Transporte Personas",    cc:"CC7" },
+  { cuenta:"1.8.1", nombre:"Comisión POS",           cc:"CC8" },
+  { cuenta:"1.8.2", nombre:"Comisión Delivery",      cc:"CC8" },
+  { cuenta:"1.9.1", nombre:"IVA F29",                cc:"CC9" },
+  { cuenta:"1.9.4", nombre:"Patente Comercial",      cc:"CC9" },
+  { cuenta:"1.9.5", nombre:"Gastos Bancarios",       cc:"CC9" },
+];
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CL");
 
@@ -74,6 +109,26 @@ export default function SubirCartola({ onSubido }: Props) {
   const toggleFila = (i: number) => {
     setFilas(prev => prev.map((f, idx) =>
       idx === i ? { ...f, seleccionado: !f.seleccionado } : f
+    ));
+  };
+
+  const asignarCuenta = (i: number, cuentaVal: string) => {
+    if (!cuentaVal) return;
+    const opt = PLAN_OPTIONS.find(o => o.cuenta === cuentaVal);
+    if (!opt) return;
+    setFilas(prev => prev.map((f, idx) =>
+      idx === i ? {
+        ...f,
+        cuenta: opt.cuenta,
+        cc: opt.cc,
+        nombre_cuenta: opt.nombre,
+        estado_import: "nuevo",
+        seleccionado: true,
+        confianza: 80,
+        // recalcular IVA según tipo_doc (F = con IVA, S = sin IVA)
+        iva: f.tipo_doc === "F" ? Math.round(f.monto * 19 / 119) : 0,
+        monto_neto: f.tipo_doc === "F" ? f.monto - Math.round(f.monto * 19 / 119) : f.monto,
+      } : f
     ));
   };
 
@@ -253,8 +308,27 @@ export default function SubirCartola({ onSubido }: Props) {
                             <td className="px-3 py-2.5 text-right font-medium text-gray-800 whitespace-nowrap">
                               {fmt(fila.monto)}
                             </td>
-                            <td className="px-3 py-2.5 text-xs text-gray-500">
-                              {fila.nombre_cuenta ?? (fila.estado_import === "excluido" ? "—" : "Sin clasificar")}
+                            <td className="px-3 py-2.5 text-xs" onClick={e => e.stopPropagation()}>
+                              {editable ? (
+                                <select
+                                  value={fila.cuenta ?? ""}
+                                  onChange={e => asignarCuenta(realIdx, e.target.value)}
+                                  className={`w-full text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 ${
+                                    fila.cuenta ? "border-gray-200 text-gray-700" : "border-orange-300 text-orange-600 bg-orange-50"
+                                  }`}
+                                >
+                                  <option value="">— Sin clasificar —</option>
+                                  {PLAN_OPTIONS.map(o => (
+                                    <option key={o.cuenta} value={o.cuenta}>
+                                      {o.cuenta} {o.nombre} ({o.cc})
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-gray-400">
+                                  {fila.nombre_cuenta ?? "—"}
+                                </span>
+                              )}
                             </td>
                             <td className="px-3 py-2.5 text-center">
                               {fila.cc && (
