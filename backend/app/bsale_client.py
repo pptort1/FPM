@@ -9,18 +9,39 @@ from typing import Generator
 BASE_URL = "https://api.bsale.io/v1"
 PAGE_SIZE = 50
 
-# Mapeo tipo de documento Bsale → (tipo_doc_fpm, cuenta, canal)
-# Ajustar según los tipos reales configurados en la cuenta FPM
-DOC_TYPE_MAP: dict[int, tuple[str, str, str]] = {
-    # id_bsale: (tipo_doc, cuenta, canal)
-    # Los IDs reales se obtienen de GET /v1/document_types.json
-    # Valores por defecto comunes en Bsale Chile:
-    2:  ("B",  "3.2", "CH2"),   # Boleta  → B2C
-    3:  ("F",  "3.1", "CH1"),   # Factura → HoReCa
-    4:  ("NC", "3.2", "CH2"),   # Nota de crédito boleta
-    5:  ("NC", "3.1", "CH1"),   # Nota de crédito factura
-    6:  ("ND", "3.1", "CH1"),   # Nota de débito
-}
+# Mapeo por NOMBRE del documento (robusto — los IDs numéricos varían por cuenta).
+# tipo_doc, signo (+1 suma / -1 resta / 0 descarta), cuenta sugerida, canal
+# Según tabla oficial María Ignacia (260530):
+#   Boleta/Factura/Bol.Honorarios/Nota Débito → SUMAN (signo +)
+#   Nota de Crédito / Factura Anulada → RESTAN (signo -)
+#   Guía de Despacho → DESCARTAR (no es venta)
+DOC_TYPE_RULES = [
+    # (substring en nombre upper, tipo_doc, signo, cuenta, canal)
+    ("BOLETA ELEC",        "B",  +1, "3.2", "CH2"),
+    ("BOLETA AFECTA",      "B",  +1, "3.2", "CH2"),
+    ("FACTURA ELEC",       "F",  +1, "3.1", "CH1"),
+    ("FACTURA AFECTA",     "F",  +1, "3.1", "CH1"),
+    ("FACTURA EXENTA",     "F",  +1, "3.1", "CH1"),
+    ("BOLETA HONORARIO",   "S",  +1, "3.2", "CH2"),
+    ("HONORARIO",          "S",  +1, "3.2", "CH2"),
+    ("NOTA DE CRED",       "NC", -1, "3.2", "CH2"),
+    ("NOTA DE CRÉD",       "NC", -1, "3.2", "CH2"),
+    ("NOTA CRED",          "NC", -1, "3.2", "CH2"),
+    ("NOTA DE DEB",        "ND", +1, "3.1", "CH1"),   # cargo adicional → SUMA
+    ("NOTA DE DÉB",        "ND", +1, "3.1", "CH1"),
+    ("GUIA",               "GD",  0, "",    ""),       # descartar
+    ("GUÍA",               "GD",  0, "",    ""),
+]
+
+
+def clasificar_doc_bsale(nombre: str) -> tuple[str, int, str, str]:
+    """Devuelve (tipo_doc, signo, cuenta, canal). signo 0 = descartar."""
+    n = (nombre or "").upper().strip()
+    for sub, tipo, signo, cuenta, canal in DOC_TYPE_RULES:
+        if sub in n:
+            return tipo, signo, cuenta, canal
+    # Desconocido: tratar como boleta B2C positiva, no descartar
+    return "B", +1, "3.2", "CH2"
 
 NOMBRE_CUENTA = {
     "3.1": "Ventas HoReCa",
@@ -89,13 +110,8 @@ class BsaleClient:
         ts = doc.get("emissionDate", 0)
         fecha = date.fromtimestamp(ts) if ts else date.today()
 
-        doc_type_id = doc.get("documentTypeId") or doc.get("document_type", {}).get("id")
-        tipo_doc, cuenta, canal = DOC_TYPE_MAP.get(
-            doc_type_id, ("B", "3.5", "CH2")   # fallback
-        )
-
-        # NC y ND tienen montos positivos en Bsale → los convertimos a negativos
-        signo = -1 if tipo_doc in ("NC", "ND") else 1
+        doc_type_name = doc.get("document_type", {}).get("name", "")
+        tipo_doc, signo, cuenta, canal = clasificar_doc_bsale(doc_type_name)
 
         total  = signo * int(doc.get("totalAmount",  0) or 0)
         neto   = signo * int(doc.get("netAmount",    0) or 0)
@@ -109,9 +125,8 @@ class BsaleClient:
         )
         rut_cliente = cliente.get("rut")
 
-        doc_type_name = doc.get("document_type", {}).get("name", tipo_doc)
         numero = doc.get("number", "")
-        descripcion = f"{doc_type_name} {numero}".strip() if numero else doc_type_name
+        descripcion = f"{doc_type_name} {numero}".strip() if numero else (doc_type_name or "Documento")
 
         mes = f"{fecha.year}-{fecha.month:02d}"
 

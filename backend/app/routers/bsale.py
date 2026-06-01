@@ -64,6 +64,9 @@ def sync_bsale(
                 continue
             try:
                 norm = BsaleClient.normalizar_documento(doc)
+                if norm["tipo_doc"] == "GD":   # Guía de despacho: no es venta
+                    stats["duplicados"] += 1
+                    continue
                 nuevos.append(Ingreso(
                     bsale_id      = bsale_id,
                     fecha         = norm["fecha"],

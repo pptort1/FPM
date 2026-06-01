@@ -1,12 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
 from typing import Optional
+import io, re, openpyxl
 from ..database import get_db
 from ..models import ProveedorMaestro, Transaccion
 
 router = APIRouter(prefix="/api/proveedores", tags=["proveedores"])
+
+
+def _norm_rut(s: str) -> str:
+    return re.sub(r"[.\s]", "", str(s or "")).upper().strip()
 
 NOMBRES_CONOCIDOS = {
     "76034515-6": "CCE Arquitectos Ltda",
@@ -89,3 +94,70 @@ def upsert_proveedor(rut: str, body: ProveedorIn, db: Session = Depends(get_db))
 def listar_proveedores(db: Session = Depends(get_db)):
     rows = db.execute(select(ProveedorMaestro).order_by(ProveedorMaestro.nombre)).scalars().all()
     return [{"rut": r.rut, "nombre": r.nombre, "cuenta": r.cuenta, "cc": r.cc} for r in rows]
+
+
+@router.post("/importar")
+def importar_maestro(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """
+    Carga masiva del maestro de proveedores desde Excel.
+    Detecta la hoja con cabecera RUT / Razón Social / CC.
+    Formato esperado (maestro María Ignacia): hoja '01_Proveedores'
+      col A=RUT, B=Razón Social, C=CC sugerido.
+    """
+    contenido = file.file.read()
+    wb = openpyxl.load_workbook(io.BytesIO(contenido), read_only=True, data_only=True)
+
+    # Buscar la hoja y fila de cabecera que tenga RUT + Razón Social
+    ws = None
+    header_row = 0
+    for sheet in wb.worksheets:
+        for i, row in enumerate(sheet.iter_rows(min_row=1, max_row=10, values_only=True), 1):
+            vals = [str(c or "").upper().strip() for c in row]
+            if any(v == "RUT" for v in vals) and any("RAZ" in v or "NOMBRE" in v for v in vals):
+                ws = sheet
+                header_row = i
+                col_rut    = next(j for j, v in enumerate(vals) if v == "RUT")
+                col_nombre = next(j for j, v in enumerate(vals) if "RAZ" in v or "NOMBRE" in v)
+                col_cc     = next((j for j, v in enumerate(vals) if v.startswith("CC")), None)
+                break
+        if ws:
+            break
+
+    if not ws:
+        wb.close()
+        raise HTTPException(400, "No se encontró cabecera RUT / Razón Social en el archivo.")
+
+    rows = list(ws.iter_rows(min_row=header_row + 1, values_only=True))
+    wb.close()
+
+    nuevos = actualizados = omitidos = 0
+    RUT_RE = re.compile(r"^\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]$")
+    for r in rows:
+        if not r or col_rut >= len(r):
+            continue
+        rut_raw = str(r[col_rut] or "").strip()
+        if not RUT_RE.match(rut_raw):   # salta filas de totales/encabezados
+            omitidos += 1
+            continue
+        rut = _norm_rut(rut_raw)
+        nombre = str(r[col_nombre] or "").strip() if col_nombre < len(r) else ""
+        cc     = str(r[col_cc] or "").strip() if col_cc is not None and col_cc < len(r) else None
+        if not nombre:
+            omitidos += 1
+            continue
+
+        pm = db.get(ProveedorMaestro, rut)
+        if pm:
+            pm.nombre = nombre
+            if cc: pm.cc = cc
+            actualizados += 1
+        else:
+            db.add(ProveedorMaestro(rut=rut, nombre=nombre, cc=cc or None))
+            nuevos += 1
+        # Propagar nombre a transacciones que solo tienen el RUT
+        db.query(Transaccion).filter(
+            Transaccion.rut == rut, Transaccion.proveedor == rut
+        ).update({"proveedor": nombre})
+
+    db.commit()
+    return {"nuevos": nuevos, "actualizados": actualizados, "omitidos": omitidos}
